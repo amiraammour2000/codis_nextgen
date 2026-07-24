@@ -789,8 +789,8 @@ with tabs[2]:
             </div>
             """, unsafe_allow_html=True)
 
-            step_to_view = st.slider("Pas de temps", 0, len(st.session_state.fire_history)-1, 
-                                    len(st.session_state.fire_history)-1)
+            max_step = max(0, len(st.session_state.fire_history) - 1)
+            step_to_view = st.slider("Pas de temps", 0, max_step, max_step)
 
             if step_to_view < len(st.session_state.fire_history):
                 grid_at_step = st.session_state.fire_history[step_to_view]['grid']
