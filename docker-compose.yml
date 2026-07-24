@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: codis_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgis:
+    image: postgis/postgis:15-3.3
+    container_name: codis_postgis
+    environment:
+      POSTGRES_USER: codis_admin
+      POSTGRES_PASSWORD: secure_password
+      POSTGRES_DB: codis_geo_db
+    volumes:
+      - postgis_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U codis_admin -d codis_geo_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web_app:
+    build: .
+    container_name: codis_web
+    command: streamlit run app.py --server.port=8501 --server.address=0.0.0.0
+    volumes:
+      - .:/app
+    ports:
+      - "8501:8501"
+    environment:
+      - DATABASE_URL=dbname=codis_geo_db user=codis_admin password=secure_password host=postgis port=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - ENV=production
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  celery_worker:
+    build: .
+    container_name: codis_celery
+    command: celery -A celery_worker.celery_app worker --loglevel=info --concurrency=4
+    volumes:
+      - .:/app
+    environment:
+      - DATABASE_URL=dbname=codis_geo_db user=codis_admin password=secure_password host=postgis port=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  iot_server:
+    build: .
+    container_name: codis_iot
+    command: python iot_websocket_server.py
+    ports:
+      - "8765:8765"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgis_data:
+  redis_data:
