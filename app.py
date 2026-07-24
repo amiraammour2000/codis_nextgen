@@ -789,23 +789,26 @@ with tabs[2]:
             </div>
             """, unsafe_allow_html=True)
 
-            max_step = max(0, len(st.session_state.fire_history) - 1)
-            step_to_view = st.slider("Pas de temps", 0, max_step, max_step)
+            if len(st.session_state.fire_history) > 1:
+                max_step = len(st.session_state.fire_history) - 1
+                step_to_view = st.slider("Pas de temps", 0, max_step, max_step)
 
-            if step_to_view < len(st.session_state.fire_history):
-                grid_at_step = st.session_state.fire_history[step_to_view]['grid']
+                if step_to_view < len(st.session_state.fire_history):
+                    grid_at_step = st.session_state.fire_history[step_to_view]['grid']
 
-                fig_grid = px.imshow(
-                    grid_at_step,
-                    color_continuous_scale=[(0, '#1E293B'), (0.5, '#7C2D12'), (1, '#EF4444')],
-                    title=f"État de la grille au pas {step_to_view + 1}"
-                )
-                fig_grid.update_layout(
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    font_color='#F1F5F9'
-                )
-                st.plotly_chart(fig_grid, use_container_width=True)
+                    fig_grid = px.imshow(
+                        grid_at_step,
+                        color_continuous_scale=[(0, '#1E293B'), (0.5, '#7C2D12'), (1, '#EF4444')],
+                        title=f"État de la grille au pas {step_to_view + 1}"
+                    )
+                    fig_grid.update_layout(
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        font_color='#F1F5F9'
+                    )
+                    st.plotly_chart(fig_grid, use_container_width=True)
+            else:
+                st.info("Exécutez plusieurs pas de simulation pour activer la timeline")
         else:
             st.info("Exécutez une simulation pour visualiser les résultats")
 
